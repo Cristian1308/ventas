@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odómetro de Ventas y Presupuesto</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
+<style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Montserrat', sans-serif;
+    background-color: black;
+    background-size: cover;
+    background-position: center;
+  }
+
+  img.logo {
+    max-width: 80vw;
+    height: auto;
+    margin: 2vh 0;
+  }
+
+  .title {
+    color: #f6264d;
+    font-size: 4vw;
+    text-align: center;
+    margin: 2vh 0;
+  }
+
+  .odometer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 0 5vw;
+  }
+
+  .digit, .currency-symbol {
+    color: #f6264d;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 1vw;
+    font-size: 30vw;
+    font-weight: 800;
+  }
+
+  .currency-symbol {
+    font-size: 20vw;
+  }
+
+  @media (min-width: 768px) {
+    .title, .digit, .currency-symbol {
+      font-size: 2rem;
+    }
+
+    .digit, .currency-symbol {
+      font-size: 16rem;
+      margin: 0 10px;
+      
+    }
+
+    img.logo {
+      max-width: 300px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-family: 'Montserrat', sans-serif;
+      cursor: pointer;
+    }
+  }
+</style>
+</head>
+<body>
+<audio id="myAudio">
+    <source src="Sonido2.mp3" type="audio/mp3">
+    Tu navegador no soporta el elemento de audio.
+</audio>
+<div class="title">Ventas</div>
+<div class="odometer">
+  <div class="digit" id="salesDigit1">0</div>
+  <div class="digit" id="salesDigit2">0</div>
+  <div class="digit" id="salesDigit3">0</div>
+</div>
+
+<div class="title">Facturación</div>
+<div class="odometer" id="budgetContainer">
+  <div class="currency-symbol">$</div>
+</div>
+
+<button id="startButton">Iniciar Animación</button>
+
+<script>
+function updateOdometerDisplay(value, type, length) {
+  if (type === 'budget') {
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    const formattedValue = formatter.format(value).slice(1);
+    document.getElementById(`${type}Container`).innerHTML = `<div class="currency-symbol">$</div>` + formattedValue.split('').map(num => `<div class="digit">${num}</div>`).join('');
+  } else {
+    const valueStr = value.toString().padStart(length, '0');
+    for (let i = 0; i < length; i++) {
+      document.getElementById(`${type}Digit${i + 1}`).textContent = valueStr[i];
+    }
+  }
+}
+
+function confuseBeforeReveal(duration, targetValue, type, length) {
+  const endTime = Date.now() + duration;
+  function updateRandomly() {
+    if (Date.now() < endTime) {
+      const randomValue = Math.floor(Math.random() * Math.pow(10, length));
+      updateOdometerDisplay(randomValue, type, length);
+      setTimeout(updateRandomly, 50);
+    } else {
+      updateOdometerDisplay(targetValue, type, length);
+    }
+  }
+  updateRandomly();
+}
+
+async function loadValueFromAppsScript() {
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycby7JRC3FmBOeb53Cd7Z2ZytArJdcLS8J6rNDPCi7ZuGLQuaT07ClcZ96mSKxc-R1jNm/exec';
+  try {
+    const response = await fetch(scriptUrl);
+    const data = await response.json();
+
+    if (!isNaN(data.ventas) && data.ventas >= 0 && data.ventas <= 999 && !isNaN(data.presupuesto) && data.presupuesto >= 0) {
+      confuseBeforeReveal(5000, data.ventas, 'sales', 3);
+      confuseBeforeReveal(5000, data.presupuesto, 'budget', 6);
+    } else {
+      alert("El valor obtenido de Google Sheets no es válido.");
+    }
+  } catch (error) {
+    console.error('Error al cargar los datos:', error);
+    alert('Error al cargar el valor desde Apps Script.');
+  }
+}
+
+document.getElementById('startButton').addEventListener('click', function() {
+  document.getElementById('myAudio').play();
+  loadValueFromAppsScript();
+});
+</script>
+
+</body>
+</html>
